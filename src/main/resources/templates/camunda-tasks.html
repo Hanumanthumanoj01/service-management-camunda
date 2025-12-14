@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Inbox</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .navbar-brand, .btn-logout { color: white !important; font-weight: 600; }
+        .btn-logout { border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; padding: 5px 15px; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            padding: 30px;
+            margin-top: 30px;
+        }
+        .table thead th { border-bottom: 2px solid #ddd; color: #555; text-transform: uppercase; font-size: 0.85rem; }
+        .btn-action { border-radius: 50px; padding: 5px 20px; font-weight: 600; background: #2c3e50; color: white; border: none;}
+        .btn-action:hover { background: #34495e; color: white; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-tasks me-2"></i> Task Inbox</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="btn btn-logout"><i class="fas fa-sign-out-alt me-1"></i> Logout</button>
+        </form>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0 text-dark"><i class="fas fa-inbox me-2 text-primary"></i> <span th:text="${viewTitle ?: 'Tasks'}"></span></h4>
+            <a href="/dashboard" class="btn btn-outline-secondary rounded-pill btn-sm">Dashboard</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>Task Name</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="task : ${tasks}">
+                    <td class="fw-bold text-dark" th:text="${task.name}"></td>
+                    <td class="text-muted" th:text="${#dates.format(task.createTime, 'dd.MM.yyyy HH:mm')}"></td>
+                    <td>
+                        <span class="badge rounded-pill bg-success" th:if="${task.assignee != null}"><i class="fas fa-user-check me-1"></i> Assigned</span>
+                        <span class="badge rounded-pill bg-warning text-dark" th:if="${task.assignee == null}"><i class="fas fa-user-clock me-1"></i> Unassigned</span>
+                    </td>
+                    <td class="text-end">
+                        <a th:href="@{/camunda/task/{taskId}(taskId=${task.id})}" class="btn btn-action">
+                            Open <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </td>
+                </tr>
+                <tr th:if="${tasks.empty}">
+                    <td colspan="4" class="text-center py-5 text-muted">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i><br>
+                        All caught up! No pending tasks.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

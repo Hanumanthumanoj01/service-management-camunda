@@ -1,0 +1,149 @@
+package com.frauas.servicemanagement.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        http
+                .authorizeHttpRequests(auth -> auth
+
+                        // -------------------------------------------------
+                        // PUBLIC / STATIC RESOURCES
+                        // -------------------------------------------------
+                        .requestMatchers("/", "/login",
+                                "/css/**", "/js/**", "/images/**", "/webjars/**")
+                        .permitAll()
+
+                        // -------------------------------------------------
+                        // MOCK & DEV TOOLS (DEV ONLY)
+                        // -------------------------------------------------
+                        .requestMatchers("/mock-api/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        // -------------------------------------------------
+                        // PROJECT MANAGER (PM)
+                        // -------------------------------------------------
+                        .requestMatchers(HttpMethod.POST, "/service-requests").hasRole("PM")
+                        .requestMatchers("/service-requests").hasRole("PM")
+                        .requestMatchers("/service-requests/**").hasAnyRole("PM", "PO", "RP")
+
+                        // -------------------------------------------------
+                        // PROCUREMENT OFFICER (PO)
+                        // -------------------------------------------------
+                        .requestMatchers("/camunda/tasks/procurement_officer").hasRole("PO")
+                        .requestMatchers(HttpMethod.POST, "/camunda/task/*/complete")
+                        .hasAnyRole("PO", "RP")
+
+                        // -------------------------------------------------
+                        // RESOURCE PLANNER (RP)
+                        // -------------------------------------------------
+                        .requestMatchers("/camunda/tasks/resource_planner").hasRole("RP")
+                        .requestMatchers("/offers/**").hasAnyRole("RP", "PM")
+
+                        // -------------------------------------------------
+                        // SHARED DASHBOARD / VIEWS
+                        // -------------------------------------------------
+                        .requestMatchers("/dashboard").hasAnyRole("PM", "PO", "RP")
+                        .requestMatchers("/service-requests/view/**")
+                        .hasAnyRole("PM", "PO", "RP")
+
+                        // -------------------------------------------------
+                        // DEFAULT RULE
+                        // -------------------------------------------------
+                        .anyRequest().authenticated()
+                )
+
+                // -------------------------------------------------
+                // LOGIN CONFIG
+                // -------------------------------------------------
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .successHandler(authenticationSuccessHandler())
+                        .permitAll()
+                )
+
+                // -------------------------------------------------
+                // LOGOUT CONFIG
+                // -------------------------------------------------
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                )
+
+                // -------------------------------------------------
+                // ACCESS DENIED
+                // -------------------------------------------------
+                .exceptionHandling(exception -> exception
+                        .accessDeniedPage("/access-denied")
+                )
+
+                // -------------------------------------------------
+                // DEV SETTINGS
+                // -------------------------------------------------
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions().disable());
+
+        return http.build();
+    }
+
+    // =====================================================
+    // ROLE-BASED LOGIN REDIRECT
+    // =====================================================
+    @Bean
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+        return (request, response, authentication) -> {
+
+            var authorities = authentication.getAuthorities();
+            String redirectUrl = "/service-requests"; // PM default
+
+            if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_PO"))) {
+                redirectUrl = "/camunda/tasks/procurement_officer";
+            } else if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_RP"))) {
+                redirectUrl = "/camunda/tasks/resource_planner";
+            }
+
+            response.sendRedirect(redirectUrl);
+        };
+    }
+
+    // =====================================================
+    // IN-MEMORY USERS (DEV)
+    // =====================================================
+    @Bean
+    public InMemoryUserDetailsManager userDetailsService() {
+
+        UserDetails pm = User.withDefaultPasswordEncoder()
+                .username("pm_user")
+                .password("password")
+                .roles("PM")
+                .build();
+
+        UserDetails po = User.withDefaultPasswordEncoder()
+                .username("po_user")
+                .password("password")
+                .roles("PO")
+                .build();
+
+        UserDetails rp = User.withDefaultPasswordEncoder()
+                .username("rp_user")
+                .password("password")
+                .roles("RP")
+                .build();
+
+        return new InMemoryUserDetailsManager(pm, po, rp);
+    }
+}

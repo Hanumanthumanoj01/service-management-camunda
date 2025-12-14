@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:activiti="http://www.activiti.org/test"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_02m23tv"
+             targetNamespace="http://camunda.org/examples">
+
+  <process id="service-request-process"
+           isExecutable="true"
+           camunda:historyTimeToLive="P90D">
+
+    <!-- Start -->
+    <startEvent id="startEvent" name="Start" />
+
+    <!-- PM Review -->
+    <userTask id="reviewRequest"
+              name="Review / Revise Request"
+              camunda:assignee="project_manager" />
+
+    <!-- Automated checks -->
+    <serviceTask id="checkInternal"
+                 name="Check Internal Workforce"
+                 camunda:delegateExpression="${checkInternalResourceDelegate}" />
+
+    <serviceTask id="checkContract"
+                 name="Validate Contract"
+                 camunda:delegateExpression="${checkContractDelegate}" />
+
+    <!-- Procurement approval -->
+    <userTask id="procurementApproval"
+              name="Approve Request: ${title}"
+              camunda:assignee="procurement_officer" />
+
+    <exclusiveGateway id="gatewayApproval" name="Approved?" />
+
+    <!-- Publish & fetch offers -->
+    <serviceTask id="publishToProviders"
+                 name="Publish to Providers"
+                 camunda:delegateExpression="${publishToProvidersDelegate}" />
+
+    <!-- OPTIONAL: passive receive task (non-blocking / semantic only) -->
+    <receiveTask id="waitForOffers"
+                 name="Offers Received (Auto)"
+                 camunda:asyncBefore="true" />
+
+    <!-- RP evaluates offers -->
+    <userTask id="evaluateOffers"
+              name="Evaluate Offer: ${title}"
+              camunda:assignee="resource_planner" />
+
+    <!-- Final verification -->
+    <userTask id="finalVerification"
+              name="Final Verification: ${title}"
+              camunda:assignee="procurement_officer" />
+
+    <exclusiveGateway id="gatewayVerification" name="Verified?" />
+
+    <!-- Finalization -->
+    <serviceTask id="finalizeRequest"
+                 name="Finalize Request Status"
+                 camunda:delegateExpression="${finalizeRequestDelegate}" />
+
+    <serviceTask id="notifyProvider"
+                 name="Notify Provider"
+                 camunda:delegateExpression="${notifyProviderDelegate}" />
+
+    <endEvent id="endEvent" name="Completed" />
+
+    <!-- Rejection handler -->
+    <serviceTask id="rejectUpdate"
+                 name="Update Status: Rejected"
+                 camunda:delegateExpression="${rejectRequestDelegate}" />
+
+    <!-- SEQUENCE FLOWS -->
+
+    <sequenceFlow id="f1" sourceRef="startEvent" targetRef="checkInternal" />
+    <sequenceFlow id="f2" sourceRef="checkInternal" targetRef="checkContract" />
+    <sequenceFlow id="f3" sourceRef="checkContract" targetRef="procurementApproval" />
+    <sequenceFlow id="f4" sourceRef="procurementApproval" targetRef="gatewayApproval" />
+
+    <sequenceFlow id="flowApproveYes"
+                  sourceRef="gatewayApproval"
+                  targetRef="publishToProviders">
+      <conditionExpression xsi:type="tFormalExpression">
+        ${approved == true}
+      </conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flowApproveNo"
+                  sourceRef="gatewayApproval"
+                  targetRef="rejectUpdate">
+      <conditionExpression xsi:type="tFormalExpression">
+        ${approved == false}
+      </conditionExpression>
+    </sequenceFlow>
+
+    <!-- 🔥 CRITICAL FIX -->
+    <!-- Skip blocking wait, go straight to RP -->
+    <sequenceFlow id="f5"
+                  sourceRef="publishToProviders"
+                  targetRef="evaluateOffers" />
+
+    <sequenceFlow id="f7"
+                  sourceRef="evaluateOffers"
+                  targetRef="finalVerification" />
+
+    <sequenceFlow id="f8"
+                  sourceRef="finalVerification"
+                  targetRef="gatewayVerification" />
+
+    <sequenceFlow id="flowVerifyYes"
+                  sourceRef="gatewayVerification"
+                  targetRef="finalizeRequest">
+      <conditionExpression xsi:type="tFormalExpression">
+        ${verified == true}
+      </conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flowVerifyNo"
+                  sourceRef="gatewayVerification"
+                  targetRef="rejectUpdate">
+      <conditionExpression xsi:type="tFormalExpression">
+        ${verified == false}
+      </conditionExpression>
+    </sequenceFlow>
+
+    <!-- Rejection loop -->
+    <sequenceFlow id="fRejectLoop"
+                  sourceRef="rejectUpdate"
+                  targetRef="reviewRequest" />
+
+    <sequenceFlow id="fResubmit"
+                  sourceRef="reviewRequest"
+                  targetRef="procurementApproval" />
+
+    <!-- Final -->
+    <sequenceFlow id="f9"
+                  sourceRef="finalizeRequest"
+                  targetRef="notifyProvider" />
+
+    <sequenceFlow id="f10"
+                  sourceRef="notifyProvider"
+                  targetRef="endEvent" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1"
+                      bpmnElement="service-request-process"/>
+  </bpmndi:BPMNDiagram>
+
+</definitions>
