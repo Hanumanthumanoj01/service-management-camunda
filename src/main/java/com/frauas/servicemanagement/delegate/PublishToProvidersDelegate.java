@@ -10,9 +10,8 @@ import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Component("publishToProvidersDelegate")
@@ -25,53 +24,43 @@ public class PublishToProvidersDelegate implements JavaDelegate {
     @Override
     public void execute(DelegateExecution execution) throws Exception {
         Long requestId = (Long) execution.getVariable("requestId");
-        String rpUser = "rp_user"; // Hardcode Resource Planner for email routing
+        System.out.println(">>> PUBLISH TO PROVIDERS: Processing Request ID: " + requestId);
 
         Optional<ServiceRequest> requestOpt = serviceRequestService.getServiceRequestById(requestId);
 
         if (requestOpt.isPresent()) {
             ServiceRequest request = requestOpt.get();
-            RestTemplate restTemplate = new RestTemplate();
 
-            // CORRECT PATH: Calls our own Mock Integration Controller
-            String group4Url = "http://localhost:8081/mock-api/providers/publish-request";
+            // 1. Update Status to PUBLISHED
+            serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.PUBLISHED);
 
+            // 2. SIMULATE GROUP 4 RESPONSE (INTERNAL LOGIC - NO REST CALL)
+            // This fixes the "Connection Refused" and "Slowness" instantly.
             try {
-                // REST API Call (Automatic Offers)
-                ProviderOffer[] offers = restTemplate.postForObject(group4Url, request, ProviderOffer[].class);
+                // Offer 1
+                ProviderOffer o1 = new ProviderOffer(request, "Global Tech Solutions", 120.00, "Senior Java Dev", 10);
+                o1.setSubmittedAt(LocalDateTime.now());
+                providerOfferRepository.save(o1);
 
-                if (offers != null && offers.length > 0) {
-                    for (ProviderOffer offer : Arrays.asList(offers)) {
-                        offer.setServiceRequest(request);
-                        providerOfferRepository.save(offer);
-                    }
+                // Offer 2
+                ProviderOffer o2 = new ProviderOffer(request, "Cloud Innovators GmbH", 95.50, "AWS Expert", 15);
+                o2.setSubmittedAt(LocalDateTime.now());
+                providerOfferRepository.save(o2);
 
-                    // CRITICAL: Update status so RP sees the task and offers
-                    serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.OFFERS_RECEIVED);
+                System.out.println(">>> SUCCESS: Generated 2 Internal Mock Offers.");
 
-                    // Email Notification to Resource Planner (Test 1)
-                    emailService.sendNotification(
-                            rpUser,
-                            "ACTION REQUIRED: New Offers for Request " + requestId,
-                            offers.length + " new provider offers are ready for evaluation."
-                    );
-                    System.out.println(">>> SUCCESS: Offers received, RP Notified.");
-                } else {
-                    serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.PUBLISHED);
-                }
+                // 3. Update Status to OFFERS_RECEIVED so RP can act
+                serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.OFFERS_RECEIVED);
+
+                // 4. Send Email to RP
+                emailService.sendNotification(
+                        "rp_user",
+                        "ACTION REQUIRED: Offers Received for Request " + requestId,
+                        "Mock offers have been generated and are ready for evaluation."
+                );
 
             } catch (Exception e) {
-                System.err.println("!!! AUTO-OFFER FAILED. Creating fallback offer. Error: " + e.getMessage());
-                // Fail-safe: Create one fallback offer if the API call crashes
-                ProviderOffer fallback = new ProviderOffer();
-                fallback.setProviderName("API Down - Fallback");
-                fallback.setProposedRate(99.99);
-                fallback.setExpertProfile("Fallback Consultant");
-                fallback.setDeliveryTimeDays(20);
-                fallback.setServiceRequest(request);
-                providerOfferRepository.save(fallback);
-
-                serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.OFFERS_RECEIVED);
+                System.err.println("!!! ERROR in Offer Generation: " + e.getMessage());
             }
         }
     }

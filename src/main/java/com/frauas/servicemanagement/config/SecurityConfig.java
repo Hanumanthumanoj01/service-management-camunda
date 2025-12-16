@@ -33,7 +33,7 @@ public class SecurityConfig {
                         // -------------------------------------------------
                         .requestMatchers("/mock-api/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // -------------------------------------------------
                         // PROJECT MANAGER (PM)
                         // -------------------------------------------------
@@ -95,7 +95,10 @@ public class SecurityConfig {
                 // DEV SETTINGS
                 // -------------------------------------------------
                 .csrf(csrf -> csrf.disable())
-                .headers(headers -> headers.frameOptions().disable());
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.disable())
+                );
+
 
         return http.build();
     }
