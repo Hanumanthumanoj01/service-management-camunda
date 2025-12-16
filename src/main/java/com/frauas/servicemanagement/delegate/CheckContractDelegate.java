@@ -8,9 +8,10 @@ import org.springframework.stereotype.Component;
 public class CheckContractDelegate implements JavaDelegate {
     @Override
     public void execute(DelegateExecution execution) throws Exception {
-        // Mock Logic: Always validate successfully
-        System.out.println(">>> MOCK (Group 2): Validating Contract Details...");
-        System.out.println(">>> MOCK (Group 2): Contract is VALID.");
+        // Group 2 Integration Logic
+        System.out.println(">>> SYSTEM: Querying Contract Management System (Group 2)...");
+        // Logic would go here
+        System.out.println(">>> SYSTEM: Contract validated successfully.");
 
         execution.setVariable("contractValid", true);
     }

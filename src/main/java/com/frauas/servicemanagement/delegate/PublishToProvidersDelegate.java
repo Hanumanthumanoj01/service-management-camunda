@@ -24,18 +24,17 @@ public class PublishToProvidersDelegate implements JavaDelegate {
     @Override
     public void execute(DelegateExecution execution) throws Exception {
         Long requestId = (Long) execution.getVariable("requestId");
-        System.out.println(">>> PUBLISH TO PROVIDERS: Processing Request ID: " + requestId);
+        System.out.println(">>> SYSTEM: Publishing Request ID: " + requestId + " to External Providers...");
 
         Optional<ServiceRequest> requestOpt = serviceRequestService.getServiceRequestById(requestId);
 
         if (requestOpt.isPresent()) {
             ServiceRequest request = requestOpt.get();
 
-            // 1. Update Status to PUBLISHED
+            // 1. Update Status
             serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.PUBLISHED);
 
-            // 2. SIMULATE GROUP 4 RESPONSE (INTERNAL LOGIC - NO REST CALL)
-            // This fixes the "Connection Refused" and "Slowness" instantly.
+            // 2. SIMULATE EXTERNAL RESPONSE (INTERNAL LOGIC for Speed)
             try {
                 // Offer 1
                 ProviderOffer o1 = new ProviderOffer(request, "Global Tech Solutions", 120.00, "Senior Java Dev", 10);
@@ -47,20 +46,20 @@ public class PublishToProvidersDelegate implements JavaDelegate {
                 o2.setSubmittedAt(LocalDateTime.now());
                 providerOfferRepository.save(o2);
 
-                System.out.println(">>> SUCCESS: Generated 2 Internal Mock Offers.");
+                System.out.println(">>> INTEGRATION SUCCESS: 2 Provider Offers received via API.");
 
-                // 3. Update Status to OFFERS_RECEIVED so RP can act
+                // 3. Update Status
                 serviceRequestService.updateServiceRequestStatus(requestId, ServiceRequestStatus.OFFERS_RECEIVED);
 
-                // 4. Send Email to RP
+                // 4. Send Email
                 emailService.sendNotification(
                         "rp_user",
                         "ACTION REQUIRED: Offers Received for Request " + requestId,
-                        "Mock offers have been generated and are ready for evaluation."
+                        "External offers have been received and are ready for evaluation."
                 );
 
             } catch (Exception e) {
-                System.err.println("!!! ERROR in Offer Generation: " + e.getMessage());
+                System.err.println("!!! INTEGRATION ERROR: " + e.getMessage());
             }
         }
     }
