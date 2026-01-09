@@ -65,4 +65,12 @@ public class ReportingService {
         ranking.sort((a,b) -> Integer.compare((int)b.get("totalOffers"), (int)a.get("totalOffers")));
         return ranking;
     }
+
+    public List<ProviderOffer> getAllOffersRaw() {
+        return providerOfferRepository.findAll();
+    }
+
+    public List<ServiceRequest> getAllRequestsRaw() {
+        return serviceRequestRepository.findAll();
+    }
 }

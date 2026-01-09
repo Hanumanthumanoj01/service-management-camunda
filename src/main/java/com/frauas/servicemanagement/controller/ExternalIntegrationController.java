@@ -2,9 +2,12 @@ package com.frauas.servicemanagement.controller;
 
 import com.frauas.servicemanagement.entity.ProviderOffer;
 import com.frauas.servicemanagement.entity.ServiceRequest;
+import com.frauas.servicemanagement.service.CamundaProcessService;
 import com.frauas.servicemanagement.service.ProviderOfferService;
 import com.frauas.servicemanagement.service.ServiceRequestService;
 
+import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.runtime.Execution;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,26 +28,76 @@ public class ExternalIntegrationController {
     @Autowired
     private ProviderOfferService providerOfferService;
 
+    @Autowired
+    private CamundaProcessService camundaProcessService;
+
+    @Autowired
+    private RuntimeService runtimeService;
+
     // =====================================================
-    // GROUP 1: WORKFORCE INTEGRATION
-    // Receives workforce requirements from Group 1
+    // GROUP 1: WORKFORCE INTEGRATION (1b Request)
+    // Receives workforce requirement and starts workflow
     // =====================================================
     @PostMapping("/group1/workforce-request")
-    public ResponseEntity<String> receiveWorkforceNeed(
-            @RequestBody Map<String, String> payload) {
-
+    public ResponseEntity<String> receiveWorkforceNeed(@RequestBody Map<String, Object> payload) {
         ServiceRequest request = new ServiceRequest();
-        request.setTitle(payload.getOrDefault(
-                "title", "Incoming Request from Workforce System"));
-        request.setDescription(payload.getOrDefault(
-                "description", "External Workforce Requirement"));
-        request.setProjectContext(
-                payload.getOrDefault("projectContext", "External Workforce Dependency"));
 
+        // Map fields safely
+        request.setTitle((String) payload.getOrDefault("jobTitle", "Workforce Request (Needs Review)"));
+        request.setDescription((String) payload.getOrDefault("description", "External request from Group 1b"));
+        request.setProjectContext((String) payload.getOrDefault("project", "Unknown Project"));
+
+        // Handle numbers safely
+        if (payload.get("internalRequestId") != null) {
+            request.setInternalRequestId(Long.valueOf(payload.get("internalRequestId").toString()));
+        }
+
+        // Save as DRAFT so PM sees it in "My Drafts"
         serviceRequestService.createServiceRequest(request);
 
+        // ❌ REMOVED: serviceRequestService.startProcessForRequest(request.getId());
+        // ✅ REASON: PM must review first.
+
+        return ResponseEntity.ok("Request received. PM will review and initiate process.");
+    }
+
+    // =====================================================
+    // GROUP 1B: DECISION CALLBACK (NEW)
+    // Accept / Reject recommendation to unblock BPMN
+    // =====================================================
+    @PostMapping("/group1/decision")
+    public ResponseEntity<String> receive1bDecision(
+            @RequestBody Map<String, Object> payload) {
+
+        Long requestId =
+                Long.valueOf(payload.get("requestId").toString());
+        String decision =
+                payload.get("decision").toString(); // ACCEPTED / REJECTED
+
+        System.out.println(
+                ">>> [API IN] GROUP 1B DECISION: "
+                        + decision + " for Request ID " + requestId);
+
+        Execution execution = runtimeService.createExecutionQuery()
+                .processVariableValueEquals("requestId", requestId)
+                .messageEventSubscriptionName("Message_1b_Decision")
+                .singleResult();
+
+        if (execution == null) {
+            return ResponseEntity.badRequest().body(
+                    "No active process waiting for 1b decision for Request ID " + requestId);
+        }
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("oneBDecision", decision);
+
+        runtimeService.createMessageCorrelation("Message_1b_Decision")
+                .processInstanceId(execution.getProcessInstanceId())
+                .setVariables(variables)
+                .correlate();
+
         return ResponseEntity.ok(
-                "Workforce request received and queued for PM review.");
+                "Decision received and process unblocked successfully.");
     }
 
     // =====================================================
@@ -56,13 +109,13 @@ public class ExternalIntegrationController {
             @RequestBody Long offerId) {
 
         return ResponseEntity.ok(
-                "Provider Management System acknowledged. " +
-                        "Contract preparation started for Offer ID: " + offerId);
+                "Provider Management System acknowledged. "
+                        + "Contract preparation started for Offer ID: " + offerId);
     }
 
     // =====================================================
-    // GROUP 4: PROVIDER OFFER (UPDATED – REAL INTEGRATION)
-    // Accepts offers in Group 4 JSON structure
+    // GROUP 4: PROVIDER OFFER (REAL INTEGRATION)
+    // Accepts Group 4 JSON structure
     // =====================================================
     @PostMapping("/group4/offer")
     public ResponseEntity<String> receiveProviderOffer(
@@ -73,27 +126,16 @@ public class ExternalIntegrationController {
 
         ProviderOffer offer = new ProviderOffer();
 
-        // Mapping Group 4 JSON → Internal Entity
-        offer.setExternalOfferId(
-                payload.get("offerId").toString());
-        offer.setProviderName(
-                payload.get("company").toString());
-        offer.setServiceType(
-                payload.get("serviceType").toString());
-        offer.setSpecialistName(
-                payload.get("specialistName").toString());
-        offer.setDailyRate(
-                Double.valueOf(payload.get("dailyRate").toString()));
-        offer.setOnsiteDays(
-                Integer.valueOf(payload.get("onsiteDays").toString()));
-        offer.setTravelCost(
-                Double.valueOf(payload.get("travellingCost").toString()));
-        offer.setTotalCost(
-                Double.valueOf(payload.get("totalCost").toString()));
-        offer.setContractType(
-                payload.get("contractualRelationship").toString());
-        offer.setSkills(
-                payload.get("skills").toString());
+        offer.setExternalOfferId(payload.get("offerId").toString());
+        offer.setProviderName(payload.get("company").toString());
+        offer.setServiceType(payload.get("serviceType").toString());
+        offer.setSpecialistName(payload.get("specialistName").toString());
+        offer.setDailyRate(Double.valueOf(payload.get("dailyRate").toString()));
+        offer.setOnsiteDays(Integer.valueOf(payload.get("onsiteDays").toString()));
+        offer.setTravelCost(Double.valueOf(payload.get("travellingCost").toString()));
+        offer.setTotalCost(Double.valueOf(payload.get("totalCost").toString()));
+        offer.setContractType(payload.get("contractualRelationship").toString());
+        offer.setSkills(payload.get("skills").toString());
 
         providerOfferService.submitOffer(serviceRequestId, offer);
 
@@ -103,7 +145,7 @@ public class ExternalIntegrationController {
 
     // =====================================================
     // GROUP 4: PROVIDER SYSTEM SIMULATION (MOCK)
-    // Used for demo/testing when Group 4 is unavailable
+    // Used when Group 4 is unavailable
     // =====================================================
     @PostMapping("/providers/publish-request")
     public List<ProviderOffer> simulateProviderResponses(

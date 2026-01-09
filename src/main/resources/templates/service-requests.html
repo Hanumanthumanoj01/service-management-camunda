@@ -63,6 +63,7 @@
 
 <div class="container">
 
+    <!-- STATS -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card stat-card bg-primary text-white p-3">
@@ -101,6 +102,7 @@
         </div>
     </div>
 
+    <!-- TABS -->
     <ul class="nav nav-tabs mb-3" id="myTab">
         <li class="nav-item">
             <button class="nav-link active" id="tasks-tab"
@@ -125,11 +127,11 @@
 
     <div class="tab-content">
 
+        <!-- TASKS -->
         <div class="tab-pane fade show active" id="tasks">
             <div class="table-card">
 
-                <div th:if="${activeTasks.empty}"
-                     class="text-center py-4 text-muted">
+                <div th:if="${activeTasks.empty}" class="text-center py-4 text-muted">
                     <i class="fas fa-check fa-2x mb-2"></i><br>
                     No pending actions.
                 </div>
@@ -163,6 +165,7 @@
             </div>
         </div>
 
+        <!-- ALL REQUESTS -->
         <div class="tab-pane fade" id="all">
             <div class="table-card">
 
@@ -181,15 +184,16 @@
                     <tbody>
                     <tr th:each="req : ${serviceRequests}">
                         <td th:text="${req.id}"></td>
-
                         <td class="fw-bold" th:text="${req.title}"></td>
 
+                        <!-- ✅ UPDATED BADGE LOGIC -->
                         <td>
                             <span class="badge rounded-pill"
                                   th:classappend="${
                                       req.status.name() == 'DRAFT' ? 'bg-secondary' :
                                       req.status.name() == 'COMPLETED' ? 'bg-success' :
                                       req.status.name() == 'REJECTED' ? 'bg-danger' :
+                                      req.status.name() == 'SELECTED_UNDER_VERIFICATION' ? 'bg-info' :
                                       'bg-warning text-dark'
                                   }"
                                   th:text="${req.status}">
@@ -197,11 +201,9 @@
                         </td>
 
                         <td th:text="${#temporals.format(req.createdAt, 'dd.MM.yyyy')}"></td>
-
                         <td th:text="${req.contractId}"></td>
 
                         <td>
-
                             <form th:if="${req.status.name() == 'DRAFT'}"
                                   th:action="@{/service-requests/{id}/process(id=${req.id})}"
                                   method="post" class="d-inline">
@@ -222,7 +224,6 @@
                                class="btn btn-sm btn-outline-secondary">
                                 Details <i class="fas fa-eye"></i>
                             </a>
-
                         </td>
                     </tr>
                     </tbody>
@@ -231,6 +232,7 @@
             </div>
         </div>
 
+        <!-- CREATE -->
         <div class="tab-pane fade" id="create">
             <div class="table-card">
                 <h5 class="mb-3">New Service Request</h5>
