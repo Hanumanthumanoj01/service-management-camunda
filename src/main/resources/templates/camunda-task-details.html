@@ -3,49 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Task Details</title>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-
-        .task-card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-top: 40px;
-            max-width: 1100px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-
-        .info-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: #888;
-            font-weight: 700;
-        }
-
-        .history-box {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            border-radius: 8px;
-            padding: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.9rem;
-            white-space: pre-wrap;
-        }
+        .task-card { background: white; border-radius: 12px; padding: 30px; margin-top: 40px; max-width: 1100px; margin-left: auto; margin-right: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .info-label { font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 700; }
+        .history-box { background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; padding: 15px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; }
     </style>
-
     <script>
         function toggleReason(select, divId) {
             const div = document.getElementById(divId);
             const textarea = div.querySelector('textarea');
-
             if (select.value === 'false') {
                 div.style.display = 'block';
                 textarea.setAttribute('required', 'required');
@@ -57,207 +26,143 @@
         }
     </script>
 </head>
-
 <body>
 
 <div class="container">
     <div class="task-card">
-
-        <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
             <div>
-                <h4 class="text-primary m-0">
-                    <i class="fas fa-clipboard-check me-2"></i>
-                    <span th:text="${task.name}">Task</span>
-                </h4>
+                <h4 class="text-primary m-0"><i class="fas fa-clipboard-check me-2"></i> <span th:text="${task.name}">Task</span></h4>
                 <small class="text-muted">Task ID: <span th:text="${task.id}"></span></small>
             </div>
             <a href="/camunda/tasks" class="btn btn-outline-secondary btn-sm">Close</a>
         </div>
 
-        <!-- ================================================= -->
-        <!-- REQUEST SUMMARY (ALWAYS VISIBLE) -->
-        <!-- ================================================= -->
         <div th:if="${requestDetails}" class="card mb-4 bg-light border-0">
             <div class="card-body">
                 <h5 class="fw-bold" th:text="${requestDetails.title}"></h5>
                 <p class="text-muted small" th:text="${requestDetails.description}"></p>
-
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="info-label">Project</div>
-                        <div th:text="${requestDetails.internalProjectName ?: '-'}"></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Timeline</div>
-                        <div>
-                            <span th:text="${requestDetails.startDate}"></span> →
-                            <span th:text="${requestDetails.endDate}"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Budget Cap</div>
-                        <div class="fw-bold text-success"
-                             th:text="${requestDetails.maxDailyRate != null ? '€' + requestDetails.maxDailyRate : '-'}">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Skills</div>
-                        <div th:text="${requestDetails.requiredSkills}"></div>
-                    </div>
-                    <div class="col-md-3" th:if="${requestDetails.contractId}">
-                        <div class="info-label">Contract ID</div>
-                        <div class="fw-bold text-primary" th:text="${requestDetails.contractId}"></div>
-                    </div>
+                    <div class="col-md-3"><div class="info-label">Project</div><div th:text="${requestDetails.internalProjectName ?: '-'}"></div></div>
+                    <div class="col-md-3"><div class="info-label">Timeline</div><div><span th:text="${requestDetails.startDate}"></span> → <span th:text="${requestDetails.endDate}"></span></div></div>
+                    <div class="col-md-3"><div class="info-label">Budget Cap</div><div class="fw-bold text-success" th:text="${requestDetails.maxDailyRate != null ? '€' + requestDetails.maxDailyRate : '-'}"></div></div>
+                    <div class="col-md-3"><div class="info-label">Contract ID</div><div class="fw-bold text-primary" th:text="${requestDetails.contractId}"></div></div>
                 </div>
             </div>
         </div>
 
-        <!-- ================================================= -->
-        <!-- COMMENT HISTORY -->
-        <!-- ================================================= -->
         <div th:if="${commentHistory}" class="mb-4">
-            <h6 class="text-secondary">
-                <i class="fas fa-history me-2"></i> Approval History
-            </h6>
+            <h6 class="text-secondary"><i class="fas fa-history me-2"></i> Approval History</h6>
             <div class="history-box" th:text="${commentHistory}"></div>
         </div>
 
-        <!-- ================================================= -->
-        <!-- OFFERS TABLE (WHEN AVAILABLE) -->
-        <!-- ================================================= -->
-        <div th:if="${offers}" class="table-responsive mb-4">
-            <h6 class="text-secondary mb-2">Received Offers (4B)</h6>
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-light">
-                <tr>
-                    <th>Provider</th>
-                    <th>Expert</th>
-                    <th>Experience</th>
-                    <th>Rate</th>
-                    <th>Total Cost</th>
-                    <th>Total Score</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="offer : ${offers}">
-                    <td th:text="${offer.providerName}"></td>
-                    <td>
-                        <strong th:text="${offer.specialistName}"></strong><br>
-                        <small class="text-muted" th:text="${offer.email}"></small>
-                    </td>
-                    <td th:text="${offer.experienceYears} + ' yrs'"></td>
-                    <td>
-                        <span th:text="'€' + ${offer.hourlyRate} + '/hr'"></span><br>
-                        <small class="text-muted"
-                               th:text="'€' + ${offer.dailyRate} + '/day'"></small>
-                    </td>
-                    <td class="fw-bold" th:text="'€' + ${offer.totalCost}"></td>
-                    <td class="text-center">
-                        <span class="badge bg-primary" th:text="${offer.totalScore}"></span>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- ================================================= -->
-        <!-- PO APPROVAL -->
-        <!-- ================================================= -->
-        <!-- PO APPROVAL (ROBUST FIX) -->
-        <div th:if="${task.taskDefinitionKey == 'Activity_PO_Approval'
-           or task.name.contains('Approve')}">
-
-            <div class="alert alert-warning">
-                <i class="fas fa-search me-2"></i>
-                <strong>Procurement Review:</strong>
-                Verify budget, skills, and contract before publishing.
-            </div>
-
-            <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}"
-                  method="post">
-
-                <select name="approved"
-                        class="form-select form-select-lg mb-3"
-                        onchange="toggleReason(this,'rejectPO')">
+        <div th:if="${task.taskDefinitionKey == 'Activity_PO_Approval' or task.name.contains('Approve')}">
+            <div class="alert alert-warning"><i class="fas fa-search me-2"></i><strong>Procurement Review:</strong> Verify budget and contract.</div>
+            <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}" method="post">
+                <select name="approved" class="form-select form-select-lg mb-3" onchange="toggleReason(this,'rejectPO')">
                     <option value="true">✅ Approve & Publish</option>
                     <option value="false">❌ Reject Request</option>
                 </select>
-
-                <div id="rejectPO" style="display:none;">
-                    <label class="form-label text-danger fw-bold">
-                        Rejection Reason
-                    </label>
-                    <textarea name="rejectionReason"
-                              class="form-control"
-                              rows="2"></textarea>
-                </div>
-
-                <button class="btn btn-warning w-100 fw-bold mt-3">
-                    Submit Decision
-                </button>
+                <div id="rejectPO" style="display:none;"><textarea name="rejectionReason" class="form-control" rows="2" placeholder="Rejection Reason"></textarea></div>
+                <button class="btn btn-warning w-100 fw-bold mt-3">Submit Decision</button>
             </form>
         </div>
 
-
-        <!-- ================================================= -->
-        <!-- PM FIX -->
-        <!-- ================================================= -->
         <div th:if="${task.taskDefinitionKey == 'Activity_PM_Fix'}">
-            <div class="alert alert-danger">
-                <strong>Rejection Reason:</strong>
-                <span th:text="${rejectionReason}"></span>
-            </div>
+            <div class="alert alert-danger"><strong>Rejection Reason:</strong> <span th:text="${rejectionReason}"></span></div>
             <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}" method="post">
-                <textarea name="pmJustification" class="form-control mb-3"
-                          rows="3" required></textarea>
+                <textarea name="pmJustification" class="form-control mb-3" rows="3" required></textarea>
                 <button class="btn btn-primary w-100">Resubmit</button>
             </form>
         </div>
 
-        <!-- ================================================= -->
-        <!-- PM EVALUATE -->
-        <!-- ================================================= -->
         <div th:if="${task.taskDefinitionKey == 'Activity_PM_Evaluate'}">
+            <div th:if="${offers}" class="table-responsive mb-4">
+                <h6 class="text-secondary mb-2">Received Offers (4B)</h6>
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light"><tr><th>Provider</th><th>Expert</th><th>Rate</th><th>Total</th><th>Score</th></tr></thead>
+                    <tbody>
+                    <tr th:each="offer : ${offers}">
+                        <td th:text="${offer.providerName}"></td>
+                        <td><strong th:text="${offer.specialistName}"></strong><br><small th:text="${offer.skills}"></small></td>
+                        <td th:text="'€' + ${offer.hourlyRate} + '/hr'"></td>
+                        <td class="fw-bold" th:text="'€' + ${offer.totalCost}"></td>
+                        <td class="text-center"><span class="badge bg-primary" th:text="${offer.totalScore}"></span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
             <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}" method="post">
                 <label class="form-label fw-bold">Select Best Offer</label>
                 <select name="selectedOfferId" class="form-select mb-3" required>
                     <option value="">-- Choose Offer --</option>
-                    <option th:each="offer : ${offers}"
-                            th:value="${offer.id}"
-                            th:text="${offer.providerName + ' - ' + offer.specialistName + ' (' + offer.totalScore + ')'}">
-                    </option>
+                    <option th:each="offer : ${offers}" th:value="${offer.id}" th:text="${offer.providerName + ' - ' + offer.specialistName + ' (' + offer.totalScore + ')'}"></option>
                 </select>
-                <textarea name="selectionReason" class="form-control mb-3"
-                          rows="2" placeholder="Justification" required></textarea>
+                <textarea name="selectionReason" class="form-control mb-3" rows="2" placeholder="Justification" required></textarea>
                 <button class="btn btn-primary w-100">Confirm Selection</button>
             </form>
         </div>
 
-        <!-- ================================================= -->
-        <!-- PO VALIDATE -->
-        <!-- ================================================= -->
         <div th:if="${task.taskDefinitionKey == 'Activity_PO_Validate'}">
+            <div class="alert alert-info border-info">
+                <i class="fas fa-check-double me-2"></i><strong>Validation Required:</strong> Confirm the PM's selection aligns with 1b needs.
+            </div>
+
+            <div class="card mb-4 border-primary" th:if="${selectedOffer}">
+                <div class="card-header bg-primary text-white fw-bold">Selected Candidate Details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Provider</small>
+                            <span class="fs-5" th:text="${selectedOffer.providerName}"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Specialist Name</small>
+                            <span class="fs-5" th:text="${selectedOffer.specialistName}"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Email</small>
+                            <span th:text="${selectedOffer.email}"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Hourly Rate</small>
+                            <strong th:text="'€' + ${selectedOffer.hourlyRate}"></strong>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Total Cost</small>
+                            <strong class="text-success" th:text="'€' + ${selectedOffer.totalCost}"></strong>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Experience</small>
+                            <span th:text="${selectedOffer.experienceYears} + ' Years'"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Skills</small>
+                            <span class="badge bg-secondary" th:text="${selectedOffer.skills}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}" method="post">
-                <select name="verified" class="form-select mb-3"
-                        onchange="toggleReason(this,'rejectVal')">
-                    <option value="true">✅ Validate & Send to 1B</option>
-                    <option value="false">❌ Reject Selection</option>
+                <select name="verified" class="form-select mb-3" onchange="toggleReason(this,'rejectVal')">
+                    <option value="true">✅ Validate Selection (Send to 1B)</option>
+                    <option value="false">❌ Reject Selection (Return to PM)</option>
                 </select>
                 <div id="rejectVal" style="display:none;">
-                    <textarea name="rejectionReason" class="form-control mb-3"
-                              placeholder="Reason for rejection"></textarea>
+                    <textarea name="rejectionReason" class="form-control mb-3" placeholder="Reason for rejection"></textarea>
                 </div>
-                <button class="btn btn-success w-100">Submit</button>
+                <button class="btn btn-success w-100 fw-bold">Confirm Validation</button>
             </form>
         </div>
 
-        <!-- ================================================= -->
-        <!-- RP COORDINATION -->
-        <!-- ================================================= -->
         <div th:if="${task.taskDefinitionKey == 'Activity_RP_Coordination'}">
-            <div class="alert alert-success">
-                Client Approved – proceed with onboarding.
+            <div class="alert alert-success"><strong>Client Approved!</strong> Proceed with onboarding.</div>
+            <div class="card mb-3" th:if="${selectedOffer}">
+                <div class="card-body">
+                    <strong>Provider:</strong> <span th:text="${selectedOffer.providerName}"></span><br>
+                    <strong>Name:</strong> <span th:text="${selectedOffer.specialistName}"></span>
+                </div>
             </div>
             <form th:action="@{/camunda/task/{taskId}/complete(taskId=${task.id})}" method="post">
                 <button class="btn btn-success w-100">Confirm & Create Order</button>
@@ -266,7 +171,6 @@
 
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
