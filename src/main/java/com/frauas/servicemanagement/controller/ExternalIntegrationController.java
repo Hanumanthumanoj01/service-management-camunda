@@ -191,82 +191,63 @@ public class ExternalIntegrationController {
     // 4B → INBOUND PROVIDER OFFER (ROBUST)
     // =====================================================
     @PostMapping("/group4/offer")
-    public ResponseEntity<String> receiveProviderOffer(
-            @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> receiveProviderOffer(@RequestBody Map<String, Object> payload) {
 
-        Long reqId =
-                Long.valueOf(String.valueOf(payload.get("serviceRequestId")));
+        System.out.println(">>> [API IN] 4B Offer Payload: " + payload);
+
+
+        Long internalId = Long.valueOf(String.valueOf(payload.get("internalRequestId"))); // e.g., 1001
+
+        ServiceRequest targetRequest = serviceRequestService.getAllServiceRequests().stream()
+                .filter(r -> r.getInternalRequestId() != null && r.getInternalRequestId().equals(internalId))
+                .findFirst()
+                .orElse(null);
+
+        if (targetRequest == null) {
+            return ResponseEntity.badRequest().body("Error: No Active Request found for Internal ID " + internalId);
+        }
+
+        Long reqId = targetRequest.getId(); // THIS is the DB ID (e.g., 2)
+        // ------------------------------------------------
 
         ProviderOffer offer = new ProviderOffer();
-
-        // ---------- IDENTIFIERS ----------
         offer.setExternalOfferId(String.valueOf(payload.get("offerId")));
         offer.setProviderName(String.valueOf(payload.get("company")));
 
-        if (payload.containsKey("contractid")) {
-            offer.setContractId(String.valueOf(payload.get("contractid")));
-        } else if (payload.containsKey("contractId")) {
-            offer.setContractId(String.valueOf(payload.get("contractId")));
-        }
+        // Handle Contract ID (flexible key)
+        if (payload.containsKey("contractid")) offer.setContractId(String.valueOf(payload.get("contractid")));
+        else if (payload.containsKey("contractId")) offer.setContractId(String.valueOf(payload.get("contractId")));
 
-        // ---------- NAME ----------
-        if (payload.containsKey("firstName")
-                && payload.containsKey("lastName")) {
-
+        // Name Parsing
+        if (payload.containsKey("firstName") && payload.containsKey("lastName")) {
             offer.setFirstName(String.valueOf(payload.get("firstName")));
             offer.setLastName(String.valueOf(payload.get("lastName")));
-            offer.setSpecialistName(
-                    offer.getFirstName() + " " + offer.getLastName());
-
+            offer.setSpecialistName(offer.getFirstName() + " " + offer.getLastName());
         } else {
-            String full =
-                    String.valueOf(payload.getOrDefault("specialistName", "Unknown"));
+            String full = String.valueOf(payload.getOrDefault("specialistName", "Unknown"));
             offer.setSpecialistName(full);
-
-            String[] parts = full.split(" ", 2);
-            offer.setFirstName(parts[0]);
-            offer.setLastName(parts.length > 1 ? parts[1] : "");
         }
 
-        // ---------- EMAIL ----------
-        offer.setEmail(
-                String.valueOf(payload.getOrDefault("email", "contact@provider.com")));
+        offer.setEmail(String.valueOf(payload.getOrDefault("email", "contact@provider.com")));
 
-        // ---------- EXPERIENCE ----------
-        offer.setExperienceYears(
-                payload.get("experienceYears") != null
-                        ? Float.parseFloat(payload.get("experienceYears").toString())
-                        : 0.0f
-        );
+        offer.setExperienceYears(payload.get("experienceYears") != null
+                ? Float.parseFloat(payload.get("experienceYears").toString()) : 0.0f);
 
-        // ---------- FINANCIALS ----------
+        // Financials
         if (payload.get("wagePerHour") != null) {
-            double hourly =
-                    Double.parseDouble(payload.get("wagePerHour").toString());
+            double hourly = Double.parseDouble(payload.get("wagePerHour").toString());
             offer.setHourlyRate(hourly);
             offer.setDailyRate(hourly * 8);
-        } else {
-            double daily =
-                    Double.parseDouble(payload.get("dailyRate").toString());
-            offer.setDailyRate(daily);
-            offer.setHourlyRate(daily / 8);
         }
 
-        offer.setTotalCost(
-                Double.parseDouble(payload.get("totalCost").toString()));
-
+        offer.setTotalCost(Double.parseDouble(payload.get("totalCost").toString()));
         offer.setSkills(String.valueOf(payload.get("skills")));
 
-        // ---------- SAVE + SCORE + STATUS ----------
+        // SAVE
         providerOfferService.submitOffer(reqId, offer);
         providerOfferService.calculateRanking(reqId);
+        serviceRequestService.updateServiceRequestStatus(reqId, ServiceRequestStatus.OFFERS_RECEIVED);
 
-        serviceRequestService.updateServiceRequestStatus(
-                reqId,
-                ServiceRequestStatus.OFFERS_RECEIVED
-        );
-
-        return ResponseEntity.ok(
-                "Offer received, evaluated, and stored successfully.");
+        return ResponseEntity.ok("Offer received for Request " + reqId + " (Internal: " + internalId + ")");
     }
 }
