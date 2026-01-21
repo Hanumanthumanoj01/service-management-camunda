@@ -19,9 +19,9 @@
     </sequenceFlow>
     <serviceTask id="Activity_Notify_Rejection" name="Notify 1b (Contract Missing)" camunda:delegateExpression="${notifyContractRejectionDelegate}">
       <incoming>Flow_Contract_Invalid</incoming>
-      <outgoing>Flow_End_Contract_Fail</outgoing>
+      <outgoing>Flow_To_End_Contract_Fail</outgoing>
     </serviceTask>
-<endEvent id="EndEvent_Contract_Fail" name="Process Terminated">
+    <endEvent id="EndEvent_Contract_Fail" name="Process Terminated">
       <incoming>Flow_To_End_Contract_Fail</incoming>
     </endEvent>
     <sequenceFlow id="Flow_To_End_Contract_Fail" sourceRef="Activity_Notify_Rejection" targetRef="EndEvent_Contract_Fail" />
@@ -97,12 +97,12 @@
     </sequenceFlow>
     <serviceTask id="Activity_Notify_4b_Reject" name="Notify 4b (Rejected)" camunda:delegateExpression="${notifyProviderRejectDelegate}">
       <incoming>Flow_1b_No</incoming>
-      <outgoing>Flow_End_Reject</outgoing>
+      <outgoing>Flow_To_End_Reject</outgoing>
     </serviceTask>
     <endEvent id="EndEvent_Reject_1b" name="Request Rejected by 1b">
-          <incoming>Flow_To_End_Reject</incoming>
-        </endEvent>
-        <sequenceFlow id="Flow_To_End_Reject" sourceRef="Activity_Notify_4b_Reject" targetRef="EndEvent_Reject_1b" />
+      <incoming>Flow_To_End_Reject</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_To_End_Reject" sourceRef="Activity_Notify_4b_Reject" targetRef="EndEvent_Reject_1b" />
     <sequenceFlow id="Flow_1b_Yes" name="Yes" sourceRef="Gateway_1b_Decision" targetRef="Activity_RP_Coordination">
       <conditionExpression xsi:type="tFormalExpression">${oneBDecision == 'ACCEPTED'}</conditionExpression>
     </sequenceFlow>
@@ -149,7 +149,7 @@
           <dc:Bounds x="428" y="220" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_End_Contract_Fail_di" bpmnElement="Flow_End_Contract_Fail">
+      <bpmndi:BPMNEdge id="Flow_To_End_Contract_Fail_di" bpmnElement="Flow_To_End_Contract_Fail">
         <di:waypoint x="600" y="180" />
         <di:waypoint x="662" y="180" />
       </bpmndi:BPMNEdge>
@@ -229,7 +229,7 @@
           <dc:Bounds x="1708" y="220" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_End_Reject_di" bpmnElement="Flow_End_Reject">
+      <bpmndi:BPMNEdge id="Flow_To_End_Reject_di" bpmnElement="Flow_To_End_Reject">
         <di:waypoint x="1880" y="180" />
         <di:waypoint x="1942" y="180" />
       </bpmndi:BPMNEdge>
@@ -274,7 +274,7 @@
       <bpmndi:BPMNShape id="Activity_Notify_Rejection_di" bpmnElement="Activity_Notify_Rejection">
         <dc:Bounds x="500" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Flow_End_Contract_Fail_di_shape" bpmnElement="Flow_End_Contract_Fail">
+      <bpmndi:BPMNShape id="EndEvent_Contract_Fail_di" bpmnElement="EndEvent_Contract_Fail">
         <dc:Bounds x="662" y="162" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="653" y="205" width="55" height="27" />
@@ -322,7 +322,7 @@
       <bpmndi:BPMNShape id="Activity_Notify_4b_Reject_di" bpmnElement="Activity_Notify_4b_Reject">
         <dc:Bounds x="1780" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Flow_End_Reject_di_shape" bpmnElement="Flow_End_Reject">
+      <bpmndi:BPMNShape id="EndEvent_Reject_1b_di" bpmnElement="EndEvent_Reject_1b">
         <dc:Bounds x="1942" y="162" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1917" y="205" width="87" height="27" />
