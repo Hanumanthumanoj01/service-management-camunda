@@ -62,14 +62,20 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
         }
 
         // --------------------------------------------------
-        // 2. Get Location & Contract
+        // 2. Get Location & Contract (With Safety Checks)
         // --------------------------------------------------
         String location = req.getPerformanceLocation();
         if (location == null || location.isEmpty()) {
-            location = "Frankfurt"; // Default fallback if missing
+            location = "Frankfurt"; // Default fallback
         }
 
-        String contractId = offer.getContractId() != null ? offer.getContractId() : req.getContractId();
+        String contractId = offer.getContractId();
+        if (contractId == null || contractId.isEmpty()) {
+            contractId = req.getContractId(); // Fallback to Request's contract
+        }
+        if (contractId == null || contractId.isEmpty()) {
+            contractId = "CTR-PENDING"; // Final safety fallback
+        }
 
         // --------------------------------------------------
         // 3. Build the Payload Object (Exact 1b Format)
@@ -86,16 +92,18 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
         payload.put("email", offer.getEmail());
         payload.put("wagePerHour", offer.getHourlyRate());
 
-        // NEW FIELDS
+        // NEW FIELDS REQUESTED BY 1B
         payload.put("skills", cleanSkills);       // "java,python"
         payload.put("location", location);        // "efa"
-        payload.put("experienceYears", offer.getExperienceYears()); // 4.0
+        payload.put("experienceYears", offer.getExperienceYears());
 
         payload.put("contractId", contractId);
         payload.put("evaluationScore", offer.getTotalScore());
 
         // ID MAPPING: They asked for 'projectId' (Their Project ID)
         payload.put("projectId", req.getInternalProjectId());
+
+        // REMOVED: status field as per your request
 
         // --------------------------------------------------
         // 4. LOGGING (Console)
@@ -118,6 +126,7 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(payload, headers);
 
+            // Send the request but DON'T fail the process if they are down
             restTemplate.postForObject(targetUrl, requestEntity, String.class);
 
             System.out.println(">>> SUCCESS: Real notification successfully sent to Group 1b API.");
@@ -125,6 +134,7 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
         } catch (Exception e) {
             System.err.println("!!! WARNING: Failed to send real notification to Group 1b. Their server might be down or rejected the format.");
             System.err.println("!!! Error Details: " + e.getMessage());
+            // We catch the error so the process flow continues (doesn't crash)
         }
     }
 }

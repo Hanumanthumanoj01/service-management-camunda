@@ -195,7 +195,6 @@ public class ExternalIntegrationController {
 
         System.out.println(">>> [API IN] 4B Offer Payload: " + payload);
 
-
         Long internalId = Long.valueOf(String.valueOf(payload.get("internalRequestId"))); // e.g., 1001
 
         ServiceRequest targetRequest = serviceRequestService.getAllServiceRequests().stream()
@@ -204,19 +203,22 @@ public class ExternalIntegrationController {
                 .orElse(null);
 
         if (targetRequest == null) {
-            return ResponseEntity.badRequest().body("Error: No Active Request found for Internal ID " + internalId);
+            return ResponseEntity.badRequest()
+                    .body("Error: No Active Request found for Internal ID " + internalId);
         }
 
-        Long reqId = targetRequest.getId(); // THIS is the DB ID (e.g., 2)
-        // ------------------------------------------------
+        Long reqId = targetRequest.getId(); // DB ID (e.g., 2)
 
         ProviderOffer offer = new ProviderOffer();
         offer.setExternalOfferId(String.valueOf(payload.get("offerId")));
         offer.setProviderName(String.valueOf(payload.get("company")));
 
         // Handle Contract ID (flexible key)
-        if (payload.containsKey("contractid")) offer.setContractId(String.valueOf(payload.get("contractid")));
-        else if (payload.containsKey("contractId")) offer.setContractId(String.valueOf(payload.get("contractId")));
+        if (payload.containsKey("contractid")) {
+            offer.setContractId(String.valueOf(payload.get("contractid")));
+        } else if (payload.containsKey("contractId")) {
+            offer.setContractId(String.valueOf(payload.get("contractId")));
+        }
 
         // Name Parsing
         if (payload.containsKey("firstName") && payload.containsKey("lastName")) {
@@ -228,10 +230,12 @@ public class ExternalIntegrationController {
             offer.setSpecialistName(full);
         }
 
-        offer.setEmail(String.valueOf(payload.getOrDefault("email", "contact@provider.com")));
+        offer.setEmail(String.valueOf(
+                payload.getOrDefault("email", "contact@provider.com")));
 
         offer.setExperienceYears(payload.get("experienceYears") != null
-                ? Float.parseFloat(payload.get("experienceYears").toString()) : 0.0f);
+                ? Float.parseFloat(payload.get("experienceYears").toString())
+                : 0.0f);
 
         // Financials
         if (payload.get("wagePerHour") != null) {
@@ -243,11 +247,20 @@ public class ExternalIntegrationController {
         offer.setTotalCost(Double.parseDouble(payload.get("totalCost").toString()));
         offer.setSkills(String.valueOf(payload.get("skills")));
 
+        // ===============================
+        // MAP LOCATION FROM 4B JSON
+        // ===============================
+        if (payload.containsKey("location")) {
+            offer.setLocation(String.valueOf(payload.get("location")));
+        }
+
         // SAVE
         providerOfferService.submitOffer(reqId, offer);
         providerOfferService.calculateRanking(reqId);
-        serviceRequestService.updateServiceRequestStatus(reqId, ServiceRequestStatus.OFFERS_RECEIVED);
+        serviceRequestService.updateServiceRequestStatus(
+                reqId, ServiceRequestStatus.OFFERS_RECEIVED);
 
-        return ResponseEntity.ok("Offer received for Request " + reqId + " (Internal: " + internalId + ")");
+        return ResponseEntity.ok(
+                "Offer received for Request " + reqId + " (Internal: " + internalId + ")");
     }
 }

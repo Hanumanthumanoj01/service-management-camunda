@@ -58,7 +58,10 @@ public class ProviderOffer {
     private OfferStatus status = OfferStatus.SUBMITTED;
 
     private LocalDateTime submittedAt = LocalDateTime.now();
+    private String location;
 
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
     // =========================
     // GETTERS & SETTERS
     // =========================
