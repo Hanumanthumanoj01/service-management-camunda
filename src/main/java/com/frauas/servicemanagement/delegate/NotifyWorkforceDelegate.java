@@ -49,11 +49,11 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
                 .orElseThrow(() -> new IllegalStateException("ProviderOffer not found: " + offerId));
 
         // --------------------------------------------------
-        // 1. Format Skills (Clean String: "Java, Python")
+        // 1. Format Skills (Clean String: "java,python")
         // --------------------------------------------------
         String cleanSkills = "Unknown";
         if (offer.getSkills() != null) {
-            // Remove brackets [] if they exist and trim whitespace
+            // Remove brackets [] and quotes "" to make it a raw comma-separated string
             cleanSkills = offer.getSkills()
                     .replace("[", "")
                     .replace("]", "")
@@ -62,13 +62,11 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
         }
 
         // --------------------------------------------------
-        // 2. Get Location (From Request)
+        // 2. Get Location & Contract
         // --------------------------------------------------
-        // Note: We use the location from the ServiceRequest because
-        // that matches what 1b originally asked for.
         String location = req.getPerformanceLocation();
         if (location == null || location.isEmpty()) {
-            location = "Remote"; // Default fallback
+            location = "Frankfurt"; // Default fallback if missing
         }
 
         String contractId = offer.getContractId() != null ? offer.getContractId() : req.getContractId();
@@ -77,21 +75,27 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
         // 3. Build the Payload Object (Exact 1b Format)
         // --------------------------------------------------
         Map<String, Object> payload = new HashMap<>();
+
+        // ID MAPPING: They asked for 'staffingRequestId' (Their ID), NOT our DB ID.
         payload.put("staffingRequestId", req.getInternalRequestId());
+
         payload.put("externalEmployeeId", offer.getExternalOfferId());
         payload.put("provider", offer.getProviderName());
         payload.put("firstName", offer.getFirstName());
-        payload.put("skills", cleanSkills); // Value: "java,python"
-        payload.put("location", location);  // Value:  or "Berlin"
         payload.put("lastName", offer.getLastName());
         payload.put("email", offer.getEmail());
+        payload.put("wagePerHour", offer.getHourlyRate());
+
+        // NEW FIELDS
+        payload.put("skills", cleanSkills);       // "java,python"
+        payload.put("location", location);        // "efa"
+        payload.put("experienceYears", offer.getExperienceYears()); // 4.0
+
         payload.put("contractId", contractId);
         payload.put("evaluationScore", offer.getTotalScore());
-        payload.put("wagePerHour", offer.getHourlyRate());
-        payload.put("projectId", req.getInternalProjectId());
 
-        // REMOVED: payload.put("status", "OFFER_WON");
-        // REMOVED: payload.put("experienceYears", ...); (Not in your requested list, removed to be safe)
+        // ID MAPPING: They asked for 'projectId' (Their Project ID)
+        payload.put("projectId", req.getInternalProjectId());
 
         // --------------------------------------------------
         // 4. LOGGING (Console)
@@ -119,7 +123,7 @@ public class NotifyWorkforceDelegate implements JavaDelegate {
             System.out.println(">>> SUCCESS: Real notification successfully sent to Group 1b API.");
 
         } catch (Exception e) {
-            System.err.println("!!! WARNING: Failed to send real notification to Group 1b. Their server might be down.");
+            System.err.println("!!! WARNING: Failed to send real notification to Group 1b. Their server might be down or rejected the format.");
             System.err.println("!!! Error Details: " + e.getMessage());
         }
     }
