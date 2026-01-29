@@ -118,7 +118,7 @@ public class ProviderOfferService {
             double technicalScore =
                     offer.getTechnicalScore() != null
                             ? offer.getTechnicalScore()
-                            : 0.0;
+                            : 50.0;
 
             // FINAL SCORE
             double totalScore =
