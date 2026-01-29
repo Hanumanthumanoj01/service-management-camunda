@@ -45,7 +45,12 @@ public class PublishToProvidersDelegate implements JavaDelegate {
         // --------------------------------------------------
         List<String> skillsList = List.of();
         if (req.getRequiredSkills() != null) {
-            skillsList = Arrays.stream(req.getRequiredSkills().split(","))
+            skillsList = Arrays.stream(
+                            req.getRequiredSkills()
+                                    .replace("[", "")
+                                    .replace("]", "")
+                                    .split(",")
+                    )
                     .map(String::trim)
                     .collect(Collectors.toList());
         }
